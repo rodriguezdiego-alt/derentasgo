@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Flota - DeRentas Go Argentina</title>
+    <style>
+        :root {
+            --primary: #ff6600; /* Color corporativo llamativo tipo Rent-a-car */
+            --secondary: #1e293b;
+            --accent: #0f172a;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --success: #10b981;
+        }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+        }
+        body { 
+            background-color: #f1f5f9; 
+            color: var(--accent); 
+            padding: 20px; 
+        }
+        header { 
+            background: linear-gradient(135deg, #1e293b, #0f172a); 
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center; 
+            border-radius: 12px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border-bottom: 4px solid var(--primary);
+        }
+        header h1 { 
+            font-size: 28px;
+            margin-bottom: 8px; 
+            letter-spacing: 0.5px;
+        }
+        header p { 
+            font-weight: 300; 
+            opacity: 0.85; 
+            font-size: 15px;
+        }
+        
+        /* Filtros */
+        .filtros-container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 15px; 
+            align-items: center; 
+        }
+        .filtro-item { 
+            flex: 1; 
+            min-width: 220px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+        }
+        .filtro-item label { 
+            font-weight: 600; 
+            font-size: 13px; 
+            color: var(--gray); 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .filtro-item input, .filtro-item select { 
+            padding: 12px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            font-size: 15px; 
+            outline: none; 
+            background-color: var(--light);
+            transition: all 0.2s;
+        }
+        .filtro-item input:focus, .filtro-item select:focus { 
+            border-color: var(--primary); 
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.15);
+        }
+        
+        /* Contador de resultados */
+        .contador {
+            width: 100%;
+            font-size: 14px;
+            color: var(--gray);
+            margin-top: -5px;
+            font-weight: 500;
+        }
+
+        /* Grilla de Autos */
+        .grilla-autos { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
+            gap: 25px; 
+        }
+        .card-auto { 
+            background: white; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+            display: flex; 
+            flex-direction: column; 
+            transition: transform 0.25s, box-shadow 0.25s;
+            border: 1px solid #e2e8f0;
+        }
+        .card-auto:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        
+        /* Contenedor de Imagen */
+        .contenedor-foto {
+            position: relative;
+            width: 100%;
+            height: 210px;
+            background-color: #e2e8f0;
+        }
+        .foto-auto { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            background-position: center; 
+        }
+        .placeholder-foto { 
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #e2e8f0; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            color: var(--gray); 
+            font-style: italic; 
+            font-size: 13px;
+            padding: 15px;
+            text-align: center;
+        }
+        .placeholder-foto span {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        /* Contenido de la Ficha */
+        .info-auto { 
+            padding: 20px; 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .badges-top {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .categoria { 
+            display: inline-block; 
+            background: #e2e8f0; 
+            color: var(--secondary); 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-size: 11px; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+        }
+        .transmision {
+            display: inline-block; 
+            background: #ffeec2; 
+            color: #b45309; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-size: 11px; 
+            font-weight: 700; 
+        }
+        .modelo { 
+            font-size: 22px; 
+            font-weight: 700; 
+            margin-bottom: 15px; 
+            color: var(--secondary);
+            line-height: 1.2;
+        }
+        
+        /* Detalles Técnicos */
+        .detalles-tecnicos { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 12px 10px; 
+            font-size: 13.5px; 
+            margin-bottom: 20px;
+            background: var(--light);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .detalle { 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .detalle span.label { 
+            color: var(--gray); 
+            font-size: 11px; 
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .detalle span.valor { 
+            font-weight: 600; 
+            color: #1e293b;
+        }
+        
+        /* Bloque de Destacados */
+        .tip-venta { 
+            background: #eff6ff; 
+            border-left: 4px solid #3b82f6; 
+            padding: 12px; 
+            font-size: 13px; 
+            border-radius: 0 8px 8px 0; 
+            margin-top: auto; 
+            color: #1e40af;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>DeRentas Go Argentina</h1>
+        <p>Panel de Especificaciones y Asesoramiento de Flota — 100% Caja Automática</p>
+    </header>
+
+    <!-- Sección de Filtros -->
+    <div class="filtros-container">
+        <div class="filtro-item">
+            <label for="buscar">Buscar por modelo o característica:</label>
+            <input type="text" id="buscar" placeholder="Ej: Ranger, baúl grande, 7 asientos..." oninput="filtrarAutos()">
+        </div>
+        <div class="filtro-item">
+            <label for="filtro-categoria">Categoría de Vehículo:</label>
+            <select id="filtro-categoria" onchange="filtrarAutos()">
+                <option value="todos">Todos los segmentos</option>
+                <option value="Compacto">Compacto / Hatchback</option>
+                <option value="Sedan">Sedán</option>
+                <option value="SUV">SUV / Monovolumen</option>
+                <option value="Pick-up">Pick-up / 4x4</option>
+                <option value="Utilitario">Utilitario / Minibus</option>
+            </select>
+        </div>
+        <div class="filtro-item">
+            <label for="filtro-pasajeros">Pasajeros mínimos:</label>
+            <select id="filtro-pasajeros" onchange="filtrarAutos()">
+                <option value="0">Cualquier capacidad</option>
+                <option value="5">Hasta 5 Asientos</option>
+                <option value="7">7 Asientos</option>
+                <option value="10">10 o más Asientos</option>
+            </select>
+        </div>
+        <div class="contador" id="contador-resultados">Mostrando 11 vehículos</div>
+    </div>
+
+    <!-- Contenedor donde se cargan los autos -->
+    <div class="grilla-autos" id="lista-autos"></div>
+
+    <script>
+        // BASE DE DATOS DE LA FLOTA ACTUALIZADA (Todos Automáticos)
+        const autos = [
+            {
+                modelo: "Volkswagen Taos",
+                categoria: "SUV",
+                pasajeros: 5,
+                baul: "498 Litros (Grande, entran 3 valijas grandes)",
+                carga: "480 kg",
+                ejes: "2.680 mm",
+                despeje: "185 mm",
+                combustible: "Nafta (Consumo mixto: 7.5L / 100km)",
+                seguridad: "6 Airbags + Frenado Autónomo de Emergencia",
+                terreno: "Ciudad y rutas pavimentadas de larga distancia",
+                foto: "img/vw_taos.jpg",
+                tip: "Fabricado en Argentina. Su confort de marcha en ruta es espectacular. Ideal para familias exigentes que buscan tecnología y seguridad total."
+            },
+            {
+                modelo: "Toyota SW4 4x4 (7 Asientos)",
+                categoria: "SUV",
+                pasajeros: 7,
+                baul: "180L (con 7 asientos) / 620L (con 5 asientos rebatidos)",
+                carga: "580 kg",
+                ejes: "2.745 mm",
+                despeje: "227 mm (Excelente despeje)",
+                combustible: "Diesel (Consumo mixto: 9.5L / 100km)",
+                seguridad: "7 Airbags + Paquete Toyota Safety Sense",
+                terreno: "Todo terreno absoluto (Ripio, nieve, montaña, barro)",
+                foto: "img/toyota_sw4.jpg",
+                tip: "La mejor opción para turismo aventura familiar (ej. Patagonia). Espacio real para 7 personas, tracción 4x4 de verdad e indestructible."
+            },
+            {
+                modelo: "Ford Ranger",
+                categoria: "Pick-up",
+                pasajeros: 5,
+                baul: "Caja de carga (Aprox. 1.180 litros de volumen)",
+                carga: "1.000 kg (1 Tonelada)",
+                ejes: "3.270 mm",
+                despeje: "235 mm (Altísimo)",
+                combustible: "Diesel (Consumo mixto: 8.5L / 100km)",
+                seguridad: "7 Airbags + Control de Tracción y Balanceo de Tráiler",
+                terreno: "Cualquier terreno (Especial para ripio fuerte y caminos destruidos)",
+                foto: "img/ford_ranger.jpg",
+                tip: "Nueva generación. Combina la fuerza bruta de una pick-up con la tecnología de un auto de lujo. Clientes que van al campo o la montaña."
+            },
+            {
+                modelo: "Ford Territory",
+                categoria: "SUV",
+                pasajeros: 5,
+                baul: "448 Litros (Muy cómodo para viajes)",
+                carga: "420 kg",
+                ejes: "2.726 mm",
+                despeje: "190 mm",
+                combustible: "Nafta Turbo (Consumo mixto: 8.0L / 100km)",
+                seguridad: "6 Airbags + Monitor de punto ciego",
+                terreno: "Urbano, autopistas y ripio liviano",
+                foto: "img/ford_territory.jpg",
+                tip: "Lo que más destaca es su espacio trasero gigante para las piernas y su techo panorámico. Ideal para convencer a clientes que buscan el máximo confort interior."
+            },
+            {
+                modelo: "Chevrolet Tracker",
+                categoria: "SUV",
+                pasajeros: 5,
+                baul: "393 Litros (Equilibrio justo, 2 valijas grandes)",
+                carga: "410 kg",
+                ejes: "2.570 mm",
+                despeje: "161 mm",
+                combustible: "Nafta Turbo 1.2L (Súper económico: 6.8L / 100km)",
+                seguridad: "6 Airbags de serie + Control de estabilidad",
+                terreno: "Ciudad y escapadas de fin de semana por ruta",
+                foto: "img/chevrolet_tracker.jpg",
+                tip: "Posición de manejo elevada pero en un tamaño compacto y ágil. El motor turbo gasta poquísimo, excelente argumento para el bolsillo del cliente."
+            },
+            {
+                modelo: "Peugeot 208",
+                categoria: "Compacto",
+                pasajeros: 5,
+                baul: "311 Litros (1 valija grande y una de mano)",
+                carga: "400 kg",
+                ejes: "2.538 mm",
+                despeje: "150 mm",
+                combustible: "Nafta (Consumo ultra bajo en ciudad: 6.2L / 100km)",
+                seguridad: "4 a 6 Airbags (según versión) + ISOFIX",
+                terreno: "Exclusivo ciudad, asfaltos urbanos y tramos cortos de ruta",
+                foto: "img/peugeot_208.jpg",
+                tip: "El auto más estético y moderno visualmente. Súper dócil de manejar, ideal para solteros, parejas o presupuestos corporativos económicos."
+            },
+            {
+                modelo: "BYD Song Pro DM-i GL",
+                categoria: "SUV",
+                pasajeros: 5,
+                baul: "520 Litros (Enorme y plano)",
+                carga: "475 kg",
+                ejes: "2.712 mm",
+                despeje: "170 mm",
+                combustible: "Híbrido Enchufable (Consumo récord en ciudad: < 4.5L / 100km)",
+                seguridad: "6 Airbags + Cámaras de visión 360°",
+                terreno: "Ciudad y rutas (Excelente autonomía combinada)",
+                foto: "img/byd_song.jpg",
+                tip: "Tecnología del futuro. Al ser híbrido enchufable es ultra silencioso y gasta casi nada de combustible. Ofrecelo como una experiencia premium y tecnológica."
+            },
+            {
+                modelo: "Renault Master",
+                categoria: "Utilitario",
+                pasajeros: 15, // Configuración habitual de Minibus en rentas
+                baul: "Modular (Espacio bajo asientos o fondo según pasajeros)",
+                carga: "1.300 kg",
+                ejes: "3.682 mm",
+                despeje: "175 mm",
+                combustible: "Diesel Común / Premium (Consumo: 9.2L / 100km)",
+                seguridad: "Airbags frontales + Control de carga adaptativo",
+                terreno: "Rutas pavimentadas, traslados urbanos y corporativos",
+                foto: "img/renault_master.jpg",
+                tip: "La solución definitiva para grupos grandes, contingentes turísticos o delegaciones de trabajo. Requiere registro de conducir profesional en algunas provincias."
+            },
+            {
+                modelo: "Ford Everest 4x4",
+                categoria: "SUV",
+                pasajeros: 7,
+                baul: "250L (con 7 asientos) / 827L (con 5 asientos)",
+                carga: "620 kg",
+                ejes: "3.270 mm",
+                despeje: "230 mm",
+                combustible: "Diesel V6 (Potente, consumo mixto: 10L / 100km)",
+                seguridad: "7 Airbags + Frenado autónomo + Control de descenso",
+                terreno: "Off-road pesado, caminos de ripio duro, nieve y barro",
+                foto: "img/ford_everest.jpg",
+                tip: "El SUV de máximo lujo de Ford con chasis de Ranger. Ideal para el cliente VIP o corporativo minero/petrolero que exige confort premium y tracción total extrema."
+            },
+            {
+                modelo: "Toyota Hiace (Minibus)",
+                categoria: "Utilitario",
+                pasajeros: 10, // Versión Wagon ejecutiva o Commuter
+                baul: "Muy amplio para valijas múltiples en la parte trasera",
+                carga: "1.100 kg",
+                ejes: "3.210 mm",
+                despeje: "175 mm",
+                combustible: "Diesel (Consumo súper optimizado: 8.8L / 100km)",
+                seguridad: "7 Airbags + Toyota Safety Sense (versión Wagon)",
+                terreno: "Ruta pavimentada y turismo interprovincial",
+                foto: "img/toyota_hiace.jpg",
+                tip: "Fabricada en Zárate, Argentina. Tiene un andar tipo auto, comodísima, butacas espectaculares. El cliente corporativo o de turismo receptivo la ama."
+            },
+            {
+                modelo: "Volkswagen Virtus",
+                categoria: "Sedan",
+                pasajeros: 5,
+                baul: "521 Litros (¡El baúl más grande de los autos de pasajeros!)",
+                carga: "430 kg",
+                ejes: "2.651 mm",
+                despeje: "155 mm",
+                combustible: "Nafta (Muy económico: 6.5L / 100km)",
+                seguridad: "6 Airbags de serie (Puntaje máximo Latin NCAP)",
+                terreno: "Ciudad y rutas pavimentadas",
+                foto: "img/vw_virtus.jpg",
+                tip: "Si viene una familia de 4 o 5 personas con muchísimas valijas grandes y no quieren pagar el precio de una SUV, el Virtus es la recomendación perfecta."
+            }
+        ];
+
+        // Función para renderizar los autos en pantalla
+        function mostrarAutos(lista) {
+            const contenedor = document.getElementById('lista-autos');
+            const contador = document.getElementById('contador-resultados');
+            contenedor.innerHTML = '';
+
+            contador.textContent = `Mostrando ${lista.length} vehículo${lista.length === 1 ? '' : 's'}`;
+
+            if(lista.length === 0) {
+                contenedor.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--gray); padding: 50px; font-weight: 500;">No encontramos vehículos que coincidan con esos filtros. Probá buscando otra palabra.</p>`;
+                return;
+            }
+
+            lista.forEach(auto => {
+                const card = document.createElement('div');
+                card.className = 'card-auto';
+
+                // Generar el bloque de imagen de forma limpia
+                // Intentará cargar la foto local en la carpeta img/, si falla mostrará el placeholder gris
+                const imagenHTML = `
+                    <div class="contenedor-foto">
+                        <img src="${auto.foto}" class="foto-auto" alt="${auto.modelo}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div class="placeholder-foto" style="display:none;">
+                            <span>🚗</span>
+                            <strong>${auto.modelo}</strong>
+                            <small style="color:#94a3b8; margin-top:4px;">Colocá tu foto en: ${auto.foto}</small>
+                        </div>
+                    </div>
+                `;
+
+                card.innerHTML = `
+                    ${imagenHTML}
+                    <div class="info-auto">
+                        <div class="badges-top">
+                            <span class="categoria">${auto.categoria}</span>
+                            <span class="transmision">⚙️ AUTOMÁTICO</span>
+                        </div>
+                        <h2 class="modelo">${auto.modelo}</h2>
+                        
+                        <div class="detalles-tecnicos">
+                            <div class="detalle"><span class="label">👥 Capacidad:</span><span class="valor">${auto.pasajeros} Asientos</span></div>
+                            <div class="detalle"><span class="label">🧳 Capacidad Baúl:</span><span class="valor">${auto.baul}</span></div>
+                            <div class="detalle"><span class="label">📏 Entre Ejes:</span><span class="valor">${auto.ejes}</span></div>
+                            <div class="detalle"><span class="label">🚜 Despeje Suelo:</span><span class="valor">${auto.despeje}</span></div>
+                            <div class="detalle"><span class="label">⛽ Motor / Gasto:</span><span class="valor">${auto.combustible}</span></div>
+                            <div class="detalle"><span class="label">🛡️ Seguridad:</span><span class="valor">${auto.seguridad}</span></div>
+                            <div class="detalle"><span class="label">⚖️ Soporta Carga:</span><span class="valor">${auto.carga}</span></div>
+                            <div class="detalle"><span class="label">🛣️ Terreno Recomendado:</span><span class="valor">${auto.terreno}</span></div>
+                        </div>
+                        
+                        <div class="tip-venta">
+                            <strong>💡 Tip para asesorar al cliente:</strong> ${auto.tip}
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(card);
+            });
+        }
+
+        // Función lógica para filtrar de forma dinámica e inteligente
+        function filtrarAutos() {
+            const textoBuscar = document.getElementById('buscar').value.toLowerCase();
+            const catSeleccionada = document.getElementById('filtro-categoria').value;
+            const pasajerosMinimos = parseInt(document.getElementById('filtro-pasajeros').value);
+
+            const autosFiltrados = autos.filter(auto => {
+                // Busca coincidencia en el nombre, categoría, tips o detalles como "7 asientos" o "baúl"
+                const coincideTexto = auto.modelo.toLowerCase().includes(textoBuscar) || 
+                                     auto.tip.toLowerCase().includes(textoBuscar) || 
+                                     auto.baul.toLowerCase().includes(textoBuscar) ||
+                                     auto.terreno.toLowerCase().includes(textoBuscar);
+                                     
+                const coincideCat = catSeleccionada === 'todos' || auto.categoria === catSeleccionada;
+                
+                // Manejo inteligente de pasajeros mínimos
+                let coincidePasajeros = true;
+                if (pasajerosMinimos === 5) {
+                    coincidePasajeros = auto.pasajeros <= 5;
+                } else if (pasajerosMinimos === 7) {
+                    coincidePasajeros = auto.pasajeros === 7;
+                } else if (pasajerosMinimos === 10) {
+                    coincidePasajeros = auto.pasajeros >= 10;
+                }
+
+                return coincideTexto && coincideCat && coincidePasajeros;
+            });
+
+            mostrarAutos(autosFiltrados);
+        }
+
+        // Carga inicial al abrir la página
+        mostrarAutos(autos);
+    </script>
+</body>
+</html>
